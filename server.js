@@ -10,16 +10,23 @@ import connectDB from "./config/database.js";
 // Load env
 dotenv.config();
 
-// Connect MongoDB
-connectDB();
-
 const app = express();
+app.set("trust proxy", 1);
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Security
 app.use(helmet());
 app.use(
   cors({
-    origin: "*", // Allow all origins for development (file:// protocol support)
+    origin: ["https://zahraafzal.github.io", "http://localhost:3000"],
     credentials: true,
   }),
 );
@@ -82,10 +89,10 @@ app.use((err, req, res, next) => {
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
-
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`
+if (process.env.VERCEL !== "1") {
+  const PORT = process.env.PORT || 5001;
+  app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════╗
 ║   🚀 NORTHMARK API Server Running   ║
 ╠═══════════════════════════════════════╣
@@ -93,5 +100,8 @@ app.listen(PORT, () => {
 ║   Mode: ${process.env.NODE_ENV}      ║
 ║   URL:  http://localhost:${PORT}      ║
 ╚═══════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
+
+export default app;
